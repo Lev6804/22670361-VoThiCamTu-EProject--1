@@ -1,4 +1,4 @@
-name: CI/CD - Build & Push Docker Images
+name: CI/CD - Build & Push Microservices to Docker Hub
 
 on:
   push:
@@ -9,9 +9,8 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
     steps:
-      - name: 🔍 Checkout source code
+      - name: 📦 Checkout source code
         uses: actions/checkout@v4
 
       - name: 🔧 Set up Docker Buildx
@@ -23,23 +22,47 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: 🏗️ Build and push Auth Service
-        uses: docker/build-push-action@v6
-        with:
-          context: ./auth
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/auth-service:latest
+      - name: 🧾 Save short SHA for tags
+        id: vars
+        run: echo "SHORT_SHA=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_ENV
 
-      - name: 🏗️ Build and push Product Service
-        uses: docker/build-push-action@v6
-        with:
-          context: ./product
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/product-service:latest
+      - name: 🔍 Debug secrets (only shows if non-empty)
+        run: |
+          echo "DOCKERHUB_USERNAME is set? -> ${DOCKERHUB_USERNAME:+yes}"
+          echo "DOCKERHUB_TOKEN is set? -> ${DOCKERHUB_TOKEN:+yes}"
 
-      - name: 🏗️ Build and push API Gateway
+      - name: 🏗️ Build & Push Auth Service
         uses: docker/build-push-action@v6
         with:
-          context: ./api-gateway
+          context: ./EProject-Phase/auth
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/auth-service:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/auth-service:${{ env.SHORT_SHA }}
+
+      - name: 📦 Build & Push Product Service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./EProject-Phase/product
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/product-service:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/product-service:${{ env.SHORT_SHA }}
+
+      - name: 🛒 Build & Push Order Service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./EProject-Phase/order
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/order-service:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/order-service:${{ env.SHORT_SHA }}
+
+      - name: 🌐 Build & Push API Gateway
+        uses: docker/build-push-action@v6
+        with:
+          context: ./EProject-Phase/api-gateway
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:${{ env.SHORT_SHA }}
