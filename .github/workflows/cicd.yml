@@ -1,0 +1,53 @@
+name: CI/CD Multi Services DockerHub
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Login DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push AUTH service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./auth
+          file: ./auth/Dockerfile
+          push: true
+          tags: lev6804/eproject-auth:latest
+
+      - name: Build & Push PRODUCT service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./product
+          file: ./product/Dockerfile
+          push: true
+          tags: lev6804/eproject-product:latest
+
+      - name: Build & Push ORDER service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./order
+          file: ./order/Dockerfile
+          push: true
+          tags: lev6804/eproject-order:latest
+
+      - name: Build & Push API-GATEWAY service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api-gateway
+          file: ./api-gateway/Dockerfile
+          push: true
+          tags: lev6804/eproject-api-gateway:latest
