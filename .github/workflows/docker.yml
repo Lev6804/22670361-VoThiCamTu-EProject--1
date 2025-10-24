@@ -32,7 +32,24 @@ jobs:
         run: |
           docker compose up -d --build
           echo "Waiting for services to be healthy..."
-          sleep 20  # có thể thay bằng wait-for-it.sh hoặc healthcheck
+          sleep 20  # có thể thay bằng wait-for-it.sh
+
+      # =========================
+      # Register user (tạo admin)
+      # =========================
+      - name: Test Register API
+        id: register-test
+        run: |
+          RESPONSE=$(curl -s -X POST http://localhost:3003/auth/register \
+            -H "Content-Type: application/json" \
+            -d '{"username":"admin","password":"123456"}')
+          echo "Register Response: $RESPONSE"
+          SUCCESS=$(echo $RESPONSE | jq -r '.success')
+          # Nếu user đã tồn tại, vẫn tiếp tục
+          if [ "$SUCCESS" != "true" ] && ! echo $RESPONSE | grep -q "already exists"; then
+            echo "Register failed"
+            exit 1
+          fi
 
       # =========================
       # Login API
