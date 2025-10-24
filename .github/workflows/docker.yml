@@ -30,9 +30,9 @@ jobs:
       # =========================
       - name: Build and run Docker Compose
         run: |
-          docker-compose up -d --build
+          docker compose up -d --build
           echo "Waiting for services to be healthy..."
-          sleep 20  # có thể thay bằng wait-for-it.sh
+          sleep 20  # có thể thay bằng wait-for-it.sh hoặc healthcheck
 
       # =========================
       # Login API
@@ -103,4 +103,4 @@ jobs:
       # =========================
       - name: Stop Docker Compose
         if: always()
-        run: docker-compose down
+        run: docker compose down
