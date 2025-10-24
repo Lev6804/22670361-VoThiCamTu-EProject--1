@@ -1,63 +1,106 @@
-name: CI/CD - Build & Push Microservices to Docker Hub
+name: CI/CD Docker Compose Multi-Service
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
-  build-and-push:
+  build-and-test:
     runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+
     steps:
-      - name: 📦 Checkout source code
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: 🔧 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: 🔐 Login to Docker Hub
-        uses: docker/login-action@v3
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: 🧾 Save short SHA for tags
-        id: vars
-        run: echo "SHORT_SHA=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_ENV
+      # =========================
+      # Build & run Docker Compose
+      # =========================
+      - name: Build and run Docker Compose
+        run: |
+          docker-compose up -d --build
+          echo "Waiting for services to be healthy..."
+          sleep 20  # bạn có thể dùng wait-for-it.sh hoặc healthcheck thay sleep
 
-      - name: 🏗️ Build & Push Auth Service
-        uses: docker/build-push-action@v6
-        with:
-          context: ./auth
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/auth-service:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/auth-service:${{ env.SHORT_SHA }}
+      # =========================
+      # Login API
+      # =========================
+      - name: Test Login API
+        id: login-test
+        run: |
+          RESPONSE=$(curl -s -X POST http://localhost:3003/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"username":"admin","password":"123456"}')
+          echo "Login Response: $RESPONSE"
+          TOKEN=$(echo $RESPONSE | jq -r '.token')
+          if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
+            echo "Login failed"
+            exit 1
+          fi
+          echo "token=$TOKEN" >> $GITHUB_ENV
 
-      - name: 📦 Build & Push Product Service
-        uses: docker/build-push-action@v6
-        with:
-          context: ./product
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/product-service:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/product-service:${{ env.SHORT_SHA }}
+      # =========================
+      # Product APIs
+      # =========================
+      - name: Test Product APIs
+        run: |
+          # 1️⃣ GET all products
+          curl -s -H "Authorization: Bearer ${{ env.token }}" http://localhost:3003/products/api/products || exit 1
 
-      - name: 🛒 Build & Push Order Service
-        uses: docker/build-push-action@v6
-        with:
-          context: ./order
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/order-service:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/order-service:${{ env.SHORT_SHA }}
+          # 2️⃣ POST create a new product
+          CREATE_RESPONSE=$(curl -s -X POST http://localhost:3003/products/api/products \
+            -H "Authorization: Bearer ${{ env.token }}" \
+            -H "Content-Type: application/json" \
+            -d '{"name":"Test Product","price":100,"description":"Product for CI testing"}')
+          echo "Create Response: $CREATE_RESPONSE"
+          PRODUCT_ID=$(echo $CREATE_RESPONSE | jq -r '.id')
+          if [ -z "$PRODUCT_ID" ] || [ "$PRODUCT_ID" == "null" ]; then
+            echo "Create product failed"
+            exit 1
+          fi
+          echo "product_id=$PRODUCT_ID" >> $GITHUB_ENV
 
-      - name: 🌐 Build & Push API Gateway
-        uses: docker/build-push-action@v6
-        with:
-          context: ./api-gateway
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:${{ env.SHORT_SHA }}
+          # 3️⃣ GET product detail by id
+          curl -s -H "Authorization: Bearer ${{ env.token }}" http://localhost:3003/products/api/products/${{ env.product_id }} || exit 1
+
+      # =========================
+      # Push Docker images (từng service)
+      # =========================
+      - name: Build & Push Auth Service
+        run: |
+          docker build -t ${{ env.DOCKERHUB_USERNAME }}/auth-service:latest ./auth-service
+          docker push ${{ env.DOCKERHUB_USERNAME }}/auth-service:latest
+
+      - name: Build & Push Product Service
+        run: |
+          docker build -t ${{ env.DOCKERHUB_USERNAME }}/product-service:latest ./product-service
+          docker push ${{ env.DOCKERHUB_USERNAME }}/product-service:latest
+
+      - name: Build & Push Order Service
+        run: |
+          docker build -t ${{ env.DOCKERHUB_USERNAME }}/order-service:latest ./order-service
+          docker push ${{ env.DOCKERHUB_USERNAME }}/order-service:latest
+
+      - name: Build & Push API Gateway
+        run: |
+          docker build -t ${{ env.DOCKERHUB_USERNAME }}/api-gateway:latest ./api-gateway
+          docker push ${{ env.DOCKERHUB_USERNAME }}/api-gateway:latest
+
+      # =========================
+      # Cleanup Docker Compose
+      # =========================
+      - name: Stop Docker Compose
+        if: always()
+        run: docker-compose down
