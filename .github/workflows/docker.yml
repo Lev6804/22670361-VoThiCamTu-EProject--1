@@ -54,7 +54,6 @@ jobs:
           echo "Register Response: $RESPONSE"
           USER_ID=$(echo $RESPONSE | jq -r '._id')
           if [ -z "$USER_ID" ] || [ "$USER_ID" == "null" ]; then
-            # Nếu user đã tồn tại, vẫn tiếp tục
             if ! echo $RESPONSE | grep -q "already exists"; then
               echo "Register failed"
               exit 1
@@ -107,17 +106,17 @@ jobs:
       # =========================
       - name: Build & Push Auth Service
         run: |
-          docker build -t ${{ env.DOCKERHUB_USERNAME }}/auth-service:latest ./auth-service
+          docker build -t ${{ env.DOCKERHUB_USERNAME }}/auth-service:latest ./auth
           docker push ${{ env.DOCKERHUB_USERNAME }}/auth-service:latest
 
       - name: Build & Push Product Service
         run: |
-          docker build -t ${{ env.DOCKERHUB_USERNAME }}/product-service:latest ./product-service
+          docker build -t ${{ env.DOCKERHUB_USERNAME }}/product-service:latest ./product
           docker push ${{ env.DOCKERHUB_USERNAME }}/product-service:latest
 
       - name: Build & Push Order Service
         run: |
-          docker build -t ${{ env.DOCKERHUB_USERNAME }}/order-service:latest ./order-service
+          docker build -t ${{ env.DOCKERHUB_USERNAME }}/order-service:latest ./order
           docker push ${{ env.DOCKERHUB_USERNAME }}/order-service:latest
 
       - name: Build & Push API Gateway
