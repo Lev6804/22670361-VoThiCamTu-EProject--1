@@ -26,6 +26,14 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # =========================
+      # Set random names for user/product
+      # =========================
+      - name: Set random names
+        run: |
+          echo "USERNAME=admin_${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+          echo "PRODUCT_NAME=Test_Product_${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
+
+      # =========================
       # Build & run Docker Compose
       # =========================
       - name: Build and run Docker Compose
@@ -35,14 +43,14 @@ jobs:
           sleep 20  # có thể thay bằng wait-for-it.sh
 
       # =========================
-      # Register user (tạo admin)
+      # Register user (random username)
       # =========================
       - name: Test Register API
         id: register-test
         run: |
           RESPONSE=$(curl -s -X POST http://localhost:3003/auth/register \
             -H "Content-Type: application/json" \
-            -d '{"username":"admin","password":"123456"}')
+            -d "{\"username\":\"${{ env.USERNAME }}\",\"password\":\"123456\"}")
           echo "Register Response: $RESPONSE"
           USER_ID=$(echo $RESPONSE | jq -r '._id')
           if [ -z "$USER_ID" ] || [ "$USER_ID" == "null" ]; then
@@ -61,7 +69,7 @@ jobs:
         run: |
           RESPONSE=$(curl -s -X POST http://localhost:3003/auth/login \
             -H "Content-Type: application/json" \
-            -d '{"username":"admin","password":"123456"}')
+            -d "{\"username\":\"${{ env.USERNAME }}\",\"password\":\"123456\"}")
           echo "Login Response: $RESPONSE"
           TOKEN=$(echo $RESPONSE | jq -r '.token')
           if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
@@ -71,7 +79,7 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_ENV
 
       # =========================
-      # Product APIs
+      # Product APIs (random product)
       # =========================
       - name: Test Product APIs
         run: |
@@ -82,9 +90,9 @@ jobs:
           CREATE_RESPONSE=$(curl -s -X POST http://localhost:3003/products/api/products \
             -H "Authorization: Bearer ${{ env.token }}" \
             -H "Content-Type: application/json" \
-            -d '{"name":"Test Product","price":100,"description":"Product for CI testing"}')
+            -d "{\"name\":\"${{ env.PRODUCT_NAME }}\",\"price\":100,\"description\":\"Product for CI testing\"}")
           echo "Create Response: $CREATE_RESPONSE"
-          PRODUCT_ID=$(echo $CREATE_RESPONSE | jq -r '.id')
+          PRODUCT_ID=$(echo $CREATE_RESPONSE | jq -r '._id')
           if [ -z "$PRODUCT_ID" ] || [ "$PRODUCT_ID" == "null" ]; then
             echo "Create product failed"
             exit 1
