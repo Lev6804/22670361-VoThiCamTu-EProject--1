@@ -44,11 +44,13 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"username":"admin","password":"123456"}')
           echo "Register Response: $RESPONSE"
-          SUCCESS=$(echo $RESPONSE | jq -r '.success')
-          # Nếu user đã tồn tại, vẫn tiếp tục
-          if [ "$SUCCESS" != "true" ] && ! echo $RESPONSE | grep -q "already exists"; then
-            echo "Register failed"
-            exit 1
+          USER_ID=$(echo $RESPONSE | jq -r '._id')
+          if [ -z "$USER_ID" ] || [ "$USER_ID" == "null" ]; then
+            # Nếu user đã tồn tại, vẫn tiếp tục
+            if ! echo $RESPONSE | grep -q "already exists"; then
+              echo "Register failed"
+              exit 1
+            fi
           fi
 
       # =========================
