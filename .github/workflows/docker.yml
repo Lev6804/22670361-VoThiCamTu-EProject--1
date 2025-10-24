@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -23,7 +23,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # =========================
       # Build & run Docker Compose
@@ -32,7 +32,7 @@ jobs:
         run: |
           docker-compose up -d --build
           echo "Waiting for services to be healthy..."
-          sleep 20  # bạn có thể dùng wait-for-it.sh hoặc healthcheck thay sleep
+          sleep 20  # có thể thay bằng wait-for-it.sh
 
       # =========================
       # Login API
@@ -56,10 +56,10 @@ jobs:
       # =========================
       - name: Test Product APIs
         run: |
-          # 1️⃣ GET all products
+          # GET all products
           curl -s -H "Authorization: Bearer ${{ env.token }}" http://localhost:3003/products/api/products || exit 1
 
-          # 2️⃣ POST create a new product
+          # POST create a new product
           CREATE_RESPONSE=$(curl -s -X POST http://localhost:3003/products/api/products \
             -H "Authorization: Bearer ${{ env.token }}" \
             -H "Content-Type: application/json" \
@@ -72,7 +72,7 @@ jobs:
           fi
           echo "product_id=$PRODUCT_ID" >> $GITHUB_ENV
 
-          # 3️⃣ GET product detail by id
+          # GET product detail by id
           curl -s -H "Authorization: Bearer ${{ env.token }}" http://localhost:3003/products/api/products/${{ env.product_id }} || exit 1
 
       # =========================
