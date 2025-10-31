@@ -80,7 +80,7 @@ docker-compose up --build
 ```
 ![Chạy hệ thống](public/image/docker-compass.png)
 
-22. **Truy cập API Gateway:**
+2. **Truy cập API Gateway:**
 
 ### 🔹 **Auth Service**
 
@@ -169,7 +169,7 @@ Authorization: Bearer <JWT_TOKEN>
 ---
 
 
-33. **Kiểm tra RabbitMQ Dashboard:**
+3. **Kiểm tra RabbitMQ Dashboard:**
 
 ```
 http://localhost:15672 (user: admin / pass: 123456)
