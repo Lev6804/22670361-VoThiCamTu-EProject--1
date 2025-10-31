@@ -71,7 +71,7 @@ Dự án bao gồm 6 dịch vụ chính (được định nghĩa trong `docker-c
 | Auth ↔ Các service khác     | JWT Token       | Gửi token qua Header | Xác thực và phân quyền người dùng |
 | Mỗi Service ↔ Database      | Kết nối riêng   | Thông qua ORM hoặc driver DB | Lưu trữ và truy xuất dữ liệu cục bộ |
 
-## 66. Hướng dẫn chạy hệ thống
+## 6. Hướng dẫn chạy hệ thống
 
 1. **Khởi chạy hệ thống:**
 
