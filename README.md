@@ -62,24 +62,25 @@ Dự án bao gồm 6 dịch vụ chính (được định nghĩa trong `docker-c
 * **Docker Compose:** Dựng môi trường phát triển toàn bộ hệ thống.
 
 ---
+## 5.Luồng giao tiếp giữa các dịch vụ
+| Thành phần                 | Giao tiếp chính | Phương thức         | Mục đích |
+|-----------------------------|-----------------|---------------------|----------|
+| Client ↔ API Gateway        | HTTP REST       | Gửi và nhận yêu cầu giữa frontend và hệ thống | Trao đổi dữ liệu trực tiếp |
+| API Gateway ↔ Services      | HTTP nội bộ     | Gọi API giữa các container nội bộ (qua Docker network) | Phân phối yêu cầu đến đúng microservice |
+| Services ↔ RabbitMQ         | Message Queue   | Gửi/nhận message bất đồng bộ | Xử lý tác vụ nền hoặc đồng bộ dữ liệu giữa các service |
+| Auth ↔ Các service khác     | JWT Token       | Gửi token qua Header | Xác thực và phân quyền người dùng |
+| Mỗi Service ↔ Database      | Kết nối riêng   | Thông qua ORM hoặc driver DB | Lưu trữ và truy xuất dữ liệu cục bộ |
 
-## 5. Hướng dẫn chạy hệ thống
+## 66. Hướng dẫn chạy hệ thống
 
-1. **Clone project:**
-
-```bash
-git clone <repo_url>
-cd project_folder
-```
-
-2. **Khởi chạy hệ thống:**
+1. **Khởi chạy hệ thống:**
 
 ```bash
 docker-compose up --build
 ```
 ![Chạy hệ thống](public/image/docker-compass.png)
 
-3. **Truy cập API Gateway:**
+22. **Truy cập API Gateway:**
 
 ### 🔹 **Auth Service**
 
@@ -117,6 +118,7 @@ Xác thực người dùng bằng mã token trước khi thực hiện các thao
 
 ![Auth thao tác](public/image/token.png)
 
+**Tạo sản phẩm mới:**
 ```bash
 POST  http://localhost:3003/products/api/products
 Authorization: Bearer <JWT_TOKEN>
@@ -167,7 +169,7 @@ Authorization: Bearer <JWT_TOKEN>
 ---
 
 
-4. **Kiểm tra RabbitMQ Dashboard:**
+33. **Kiểm tra RabbitMQ Dashboard:**
 
 ```
 http://localhost:15672 (user: admin / pass: 123456)
@@ -182,12 +184,12 @@ Hàng đợi của các hóa đơn
 
 ---
 
-## 6. CI/CD kiểm thử và push lên dockerhub
+## 7. CI/CD kiểm thử và push lên dockerhub
 CI: Kiểm thử, test các chức năng của code trước khi tạo image trên dockerhub
 ![Chạy hệ thống](public/image/ci.png)
 CD: Sau thi test xong hệ thống thì tạo các server trong dockerhub
 ![Chạy hệ thống](public/image/cd.png)
 
-## 7. Kết luận
+## 8. Kết luận
 
 Hệ thống minh họa cho kiến trúc **Microservices** gồm các service Auth – Product – Order được điều phối qua **API Gateway**, giao tiếp bằng **RabbitMQ**, và quản lý bởi **Docker Compose**. Cấu trúc này đảm bảo tính mở rộng, linh hoạt và dễ bảo trì cho ứng dụng thương mại điện tử.
